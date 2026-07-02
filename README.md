@@ -1,3 +1,11 @@
+##############
+K1j1t0nyamA!2
+P@rrot0S_2026
+Bongo#Flav@99
+Cyber$ecu1itY
+#############
+
+
 https://hackviser.com/tactics/pentesting/web/sql-injection
 
 
